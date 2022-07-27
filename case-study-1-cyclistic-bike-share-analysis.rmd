@@ -1,0 +1,301 @@
+---
+title: 'Cyclistic Bike Share Analysis'
+author: 'Author   : Xiao Fang'
+date: 'Date       : 2022-07-15'
+output:
+  html_document:
+    number_sections: false
+    toc: true
+---
+![](https://miro.medium.com/max/1400/1*sPHAfqCpeT_Hr57CPfVj1Q.jpeg){width="500"}
+
+## PHASE 1: ASK
+
+### Objective:
+
+Cyclistic Bike-Share believes company's future depends on maximizing the number of annual memberships. Annual Members are much more profitable than Casual Riders. The Design Marketing Strategies aimed at converting Casuals Riders into Annual Members. <br>
+
+### Business Task:
+
+The business task is to analyze the Cyclistic historical bike trip data to identify the trend and have better understanding how Annual Members and Casual Riders use Cyclistic bikes differently. <br>
+
+### Stakeholders:
+
+-   Director of Marketing: Lily Moreno
+-   Cyclistic Marketing Analytics Team
+-   Cyclistic Executive Team
+
+## PHASE 2: PREPARE
+
+### Wrangle data and combine into a single dataframe:
+
+The data source is located at and can be downloaded from [here](https://divvy-tripdata.s3.amazonaws.com/index.html).The data source consists of data from year 2013 to 2022. The data is organized in quarterly and changed to monthly from April 2020. For this exercise, we are looking 12 months of Cyclistic data which will be July 2021 to June 2022.
+
+All 12 months of data consists of following columns:
+
+-   ride_id
+-   rideable_type
+-   started_at
+-   ended_at
+-   start_station_name
+-   start_station_id
+-   end_station_name
+-   end_station_id
+-   start_lat
+-   start_lng
+-   end_lat
+-   end_lng
+-   member_casual
+
+There are 3 pricing plans: single-ride passes, full-day passes and annual memberships. Single-rise passes and full-day passes will be considered **Casual** while annual memberships will be considered as **Annual** in member_casual.
+
+### Data Ethic and Privacy:
+
+The data is owned by Lyft Bikes and Scooters, LLC ("Bikeshare"). The data license allows to access, reproduce, analyse, copy, modify, distribute. Please refer [here](https://ride.divvybikes.com/data-license-agreement) for Data License Agreement.
+
+```{r - Load all required libraries for analysis, include=FALSE}
+# load all required libraries for analysis
+
+library("tidyverse")
+library("ggplot2")
+library("lubridate")
+library("plotly")
+```
+
+```{r - Load all data into data frame, include=FALSE}
+# Import 12 months of  data into data frame
+
+trip_data_202107 <- read_csv("../input/cyclistic-bike-share-jul2011-to-jun2022/202107-divvy-tripdata.csv")
+trip_data_202108 <- read_csv("../input/cyclistic-bike-share-jul2011-to-jun2022/202108-divvy-tripdata.csv")
+trip_data_202109 <- read_csv("../input/cyclistic-bike-share-jul2011-to-jun2022/202109-divvy-tripdata.csv")
+trip_data_202110 <- read_csv("../input/cyclistic-bike-share-jul2011-to-jun2022/202110-divvy-tripdata.csv")
+trip_data_202111 <- read_csv("../input/cyclistic-bike-share-jul2011-to-jun2022/202111-divvy-tripdata.csv")
+trip_data_202112 <- read_csv("../input/cyclistic-bike-share-jul2011-to-jun2022/202112-divvy-tripdata.csv")
+trip_data_202201 <- read_csv("../input/cyclistic-bike-share-jul2011-to-jun2022/202201-divvy-tripdata.csv")
+trip_data_202202 <- read_csv("../input/cyclistic-bike-share-jul2011-to-jun2022/202202-divvy-tripdata.csv")
+trip_data_202203 <- read_csv("../input/cyclistic-bike-share-jul2011-to-jun2022/202203-divvy-tripdata.csv")
+trip_data_202204 <- read_csv("../input/cyclistic-bike-share-jul2011-to-jun2022/202204-divvy-tripdata.csv")
+trip_data_202205 <- read_csv("../input/cyclistic-bike-share-jul2011-to-jun2022/202205-divvy-tripdata.csv")
+trip_data_202206 <- read_csv("../input/cyclistic-bike-share-jul2011-to-jun2022/202206-divvy-tripdata.csv")
+```
+
+```{r - Combine 12 months data into one data frame, include=FALSE}
+# combine 12 months data frame
+
+trip_data_combine <- bind_rows(trip_data_202107, trip_data_202108, trip_data_202109, trip_data_202110, trip_data_202111, trip_data_202112, trip_data_202201, trip_data_202202, trip_data_202203, trip_data_202204, trip_data_202205, trip_data_202206)
+```
+
+## PHASE 3: PROCESS
+
+12 months of data has combined into one data set. Now, we need to clean to the data that will cause possible errors like NA or invalid values. We also need to create new columns for our analysis to produce meaningful insight.
+
+### Data Cleanup:
+
+**Overview of Cyclistic Bike Trip Data:**
+
+```{r - Overview data, echo=FALSE}
+# Lets look at overview data. 
+
+glimpse(trip_data_combine)
+```
+
+**This is to check if any columns has missing value:**
+
+```{r - To check if any columns has missing value, echo=FALSE}
+# Let's look at any missing value in the data set.
+
+colSums(is.na(trip_data_combine))
+```
+
+**Action:** There is missing data in columns start_station_name, start_station_id, end_station_name and end_station_id. Hence, start_lat, start_lng, end_lat and end_lng will be used for analysis to include more data and prevent any data bias, i.e. the missing data is mostly coming from same station. We will clean up the missing data for end_lat and end_lng.
+
+Total 5374 records are removed from analysis.
+
+```{r - Clean up missing row for end_lat and end_lng., echo=FALSE}
+
+# Let's clean up missing data for end_lat and end_lng. There is total 5374 rows are removed.
+trip_data_clean <- drop_na (trip_data_combine, end_lat)
+
+colSums(is.na(trip_data_clean))
+```
+
+**Check the "member_casual" columns to make sure it only consists of 2 values:**
+
+```{r - member_casual, echo=FALSE}
+unique(trip_data_clean$member_casual)
+```
+
+**Action:** There is no other invalid values in member_casual. No action is taken. <br><br>
+
+### Prepare data for analysis:
+
+1.  Adding additional columns of data - month, year, day and ride length to provide additional opportunities to aggregate the data.
+
+    -   trip_month - which month the trip was taken
+    -   trip_year - which year the trip was taken
+    -   day_of_week - which weekday the trip was taken
+    -   ride_length - how long is the trip last
+
+```{r - Create new columns for data analysis, include=FALSE}
+
+# Let's create required new columns for data analysis
+# trip_month - which month the trip was taken
+# trip_year - which year the trip was taken
+# day_of_week - which weekday the trip was taken
+# ride_length - how long is the trip last
+trip_data_clean <- mutate(trip_data_clean,
+                          trip_month = format(as.Date(started_at),"%m"),
+                          trip_year = format(as.Date(started_at),"%y"),
+                          day_of_week = format(as.Date(started_at), "%A"),
+                          ride_length = difftime(ended_at,started_at))
+```
+
+```{r - convert "ride_length from factor to numeric, include=FALSE}
+# Convert "ride_length" from Factor to numeric so we can run calculations on the data 
+is.factor(trip_data_clean$ride_length)
+trip_data_clean$ride_length <-as.numeric(as.character(trip_data_clean$ride_length))
+is.numeric(trip_data_clean$ride_length)
+```
+
+2.  There are some rides where trip duration shows up as negative. We need to delete these rides to produce more accurate analysis. There is total 146 records removed.
+
+```{r - to show the ride_length shows up as negative}
+# to show rides where ride_length is <= 0
+
+filter(trip_data_clean, !ride_length <= 0)
+```
+
+```{r - remove bad data, include=FALSE}
+# remove rides where ride_length is <= 0
+
+trip_data_clean <- filter(trip_data_clean, !ride_length <= 0)
+
+```
+
+## PHASE 4: ANALYZE
+
+### Summary of trip duration:
+
+Let's look at the summary of trip duration (all figures in seconds) for bike riders:
+
+```{r - Summary analysis on trip duration (in seconds), echo=FALSE}
+# to disable warning message
+options(dplyr.summarise.inform = FALSE)
+options(repr.plot.width = 12, repr.plot_height = 12, scipen = 100)
+
+trip_data_clean %>% 
+  group_by(member_casual) %>% 
+  summarize(`Number of Rides` = n(), `Max Length Trip` = max(ride_length), `Min Length Trip` = min(ride_length), `Average Length Trip` = mean(ride_length), `Median Length Trip` = median(ride_length))
+```
+
+```{r - visualization for average duration, echo=FALSE}
+# rearrange the order of weekday
+trip_data_clean$day_of_week <- ordered(trip_data_clean$day_of_week, levels=c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"))
+
+trip_data_clean %>% 
+  mutate(day_of_week = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, day_of_week) %>% 
+  summarize(number_of_rides = n(),
+            average_duration = mean(ride_length)) %>% 
+  arrange(member_casual,day_of_week) %>% 
+  ggplot(aes(x=day_of_week, y=average_duration, fill=member_casual))+
+  geom_col(position ="dodge") + 
+  labs(title="Average Trip Duration",
+     caption="Data from July 2021 to June 2022", x = "Weekday", y = "Average Duration") +
+  guides(fill=guide_legend(title="Rider Type"))
+
+```
+
+```{r - visualization for average number of rides, echo=FALSE}
+trip_data_clean %>% 
+  mutate(day_of_week = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, day_of_week) %>% 
+  summarise(number_of_rides = n(), average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, day_of_week) %>% 
+  ggplot(aes(x=day_of_week, y = number_of_rides, fill = member_casual)) +
+  geom_col(positio="dodge")+
+  labs(title="Average Number of Rides",
+     caption="Data from July 2021 to June 2022", x = "Weekday", y = "Average Number of Rides") +
+  guides(fill=guide_legend(title="Rider Type"))
+```
+
+**Finding:**\
+From past 1 year, Annual Member has higher average number of rides during workday, but ***Casual Riders*** have longer average ride duration than riders who are Annual Members through out whole week. We can conclude that Annual Members are using bike services mostly to and from work but Casual Riders are using services for leisure.
+
+### Bike services usage:
+
+Next, we will look at the usage of bike services for each rider types for whole year *(Hover the graph for tooltip)*
+
+```{r - which month has the highest ride, group by member_casual, echo=FALSE}
+options(repr.plot.width = 10, repr.plot_height = 10, scipen = 100)
+
+p <- ggplot(data=trip_data_clean) + 
+  geom_bar(mapping = aes(x=trip_month, fill = member_casual)) +
+  labs(title="Numbers of rides for 12 months",
+     caption="Data from July 2021 to June 2022", x = "Month", y = "Number of rides") +
+  guides(fill=guide_legend(title="Rider Type"))
+
+ggplotly(p)
+       
+```
+
+<br>
+
+**Finding:**\
+From October 2021, the bike usage is decreasing drastically until May 2022. In early of the year, there is less Casual Riders using bike services. However, in month July and August, there are more Casual Riders than Annual Members. This could be Summer and Autumn has better weather and there is summer vacation, more people are using bike services for leisure.
+
+### Bike types used by both riders:
+
+We are going to find out which bike type used by Casual Riders and Annual Members.
+
+```{r - which type of ride type that used by casual and member riders1, echo=FALSE}
+options(repr.plot.width = 25, repr.plot_height = 25, scipien = 100)
+
+ggplot(data = trip_data_clean) +
+  geom_bar(mapping = aes(x = member_casual, fill = rideable_type), position = "dodge",  width = 0.5)+
+  scale_fill_manual("legend", values = c("classic_bike" = "steelblue","electric_bike" = "deeppink3", "docked_bike" = "darkslategray3")) +
+  labs(title="Bike type usage by Rider Type",caption="Data from July 2021 to June 2022", x="Rider", y = "Number of rides") +
+  guides(fill=guide_legend(title="Bike Type"))
+```
+
+```{r - which type of ride type that used by casual and member riders, echo=FALSE}
+ggplot(data = trip_data_clean, height=800, width = 800) +
+  geom_bar(mapping = aes(x=trip_month, fill = rideable_type),  position = "dodge",width = 0.8) +
+  facet_wrap(~member_casual)+
+  scale_fill_manual("legend", values = c("classic_bike" = "steelblue","electric_bike" = "deeppink3", "docked_bike" = "darkslategray3")) +
+  labs(title="Bike type usage by Rider Type",caption="Data from July 2021 to June 2022", x="Month", y = "Number of rides") +
+  guides(fill=guide_legend(title="Bike Type")) +
+  theme(axis.text.x = element_text(angle=60))
+
+```
+
+<br>
+
+**Finding:**\
+From the chart, we can see that both Casual Riders and Annual Members prefer both Classic bike and Electric Bike than Docked Bike. Only small amount of Casual Riders are using Docked Bike. This could be that riders are not familiar or not aware with new bike system - Docked Bike.
+
+<br>
+
+## PHASE 5: SHARE
+
+### Summary of Findings:
+
+1.. **Annual Members** have higher bike service usage and lesser usage time while **Casual Riders** are using it for leisure with longer usage time.
+
+2.  During **Summer** and **Autumn** months has higher usage of bike services for both rider types.
+
+3.  Both riders are often using Classic Bike and Electronic bike. **Docked Bike** has lesser usage probably due to riders are not aware of new type of bike and lesser Docked Bike on streets.
+
+<br>
+
+## PHASE 6: ACT
+
+### Recommendations:
+1. Summer month has higher usage of bike services, we can introduce discount during Summer for Annual Membership.
+
+2.  We can create campaigns to promote Dock-based System which is more efficient to manage and leading to higher reliability to the riders. Besides that, we can increase more Docked Bike in the market.
+
+3.  We can work with various hospitality service, i.e. hotels, restaurants or retailers. Annual Members able to get some discounts from the bike distance has been accumulated. This is not only can encourage Casual Riders to convert but also for healthier lifestyle and lesser pollution to environment.
+
+
+**Thank you for reading. Any comments or recommendation are welcome. :)**
