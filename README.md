@@ -15,7 +15,7 @@ You can click the Preview link to take a look at your changes.
 
 ### Analytic Project in R:
 1. Google Capstone Project - Case Study 1: Cyclistic Bike Share Analysis \
-   
+   Link: https://www.kaggle.com/code/oxiaofango/case-study-1-cyclistic-bike-share-analysis
    
 2. Covid-19 African Countries Data Visualization \
    Link: https://www.kaggle.com/code/oxiaofango/covid-19-african-countries-data-viz
