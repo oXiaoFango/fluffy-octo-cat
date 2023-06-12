@@ -1,0 +1,185 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+<img src="https://img.freepik.com/premium-vector/set-cute-dumpling_228218-75.jpg" alt="Dumpling Photo" style="width:50%"/>
+
+Din Tai Fung is a Taiwanese Restaurant chain that has gained international recognition for its exquisite cuisine, particular its signature dish <b>Xiao Long Bao</b>, which is type of steamed dumpling.
+
+During the COVID-19 pandemic, they started to team up with online ordering platforms so that people can enjoy their meals at home. The dataset is about the orders of Din Tai Fung cuisine on an online ordering platform.
+
+One day, they decided to launch a new feature, which started on 1st April 2023, during the ordering process on the platform to boost the sale.
+
+```{r - loading library and dataset, include=FALSE}
+library("tidyverse")
+library("plotly")
+library("gridExtra")
+
+# loading data into data frame
+menu <- read_csv("/kaggle/input/ding-tai-fung-x-online-ordering-platform-orders/menu.csv")
+order <- read_csv("/kaggle/input/ding-tai-fung-x-online-ordering-platform-orders/order.csv")
+detail <- read_csv("/kaggle/input/ding-tai-fung-x-online-ordering-platform-orders/detail.csv")
+
+menu <- menu %>% 
+  mutate(product_name = gsub("Rick","Rice",product_name))
+
+menu <- menu %>% 
+  mutate(product_name = gsub("and", "&", product_name))
+
+menu %>% 
+  filter(str_detect(product_name, "and"))
+```
+
+### All-Time Favourite
+```{r echo=FALSE, fig.width=8, fig.height=4}
+popular_item <- detail %>% 
+  count(item_id) %>% 
+  left_join(menu,
+             by = c("item_id" = "product_id")) %>% 
+  select(item_id, product_name, category, n) %>% 
+  arrange(category, desc(n))
+
+category_colors <- c("Buns" = "#feebe2",
+                     "Desserts" = "#fbb4b9",
+                     "Dumplings & Shao Mai" = "#f768a1",
+                     "Fried Rice" = "#c51b8a",
+                     "Xiaolongbao" = "#7a0177")
+
+desired_order <- c("Buns","Desserts", "Dumplings & Shao Mai", "Fried Rice", "Xiaolongbao" )
+
+plot1 <- ggplot(data = popular_item) +
+  geom_col(mapping = aes(x = category,
+                         y = n,
+                         fill = category),
+           width = 0.8,) + 
+  labs(title = "Most Beloved Item among Taiwanese",
+       subtitle = "Source: Kaggle - Ding Tai Fung x Online Ordering Platform Orders",
+       caption = "This is not a real world data.",
+       x = "Category", 
+       y = "No. of Items sold") + 
+  theme_classic() +
+  theme(plot.subtitle = element_text(size = 8),
+    plot.caption = element_text(hjust = 0, vjust = 1),
+        axis.text.x = element_text(angle = 20,
+                                   hjust = 1),
+        legend.position = "none",
+        panel.background = element_rect(linewidth = 0.5, color = "black")) + 
+  scale_fill_manual(values = category_colors) +
+  scale_y_continuous(limits = c(0,4000))
+
+plot2 <- popular_item %>% 
+  group_by(category) %>% 
+  filter(n == max(n)) %>% 
+  ggplot() +
+  geom_col(mapping = aes(x = reorder(product_name, match(category, desired_order)), 
+                         y = n,
+                         fill = category))+
+  theme_classic() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 20,
+                                   hjust = 1),
+        panel.background = element_rect(linewidth = 0.5, color = "black")) + 
+  labs(title = "All-Time Favourite",
+       subtitle = "",
+       x = "Product Name",
+       y = "No of Orders") + 
+  scale_fill_manual(values = category_colors, name = "Category")
+
+grid.arrange(plot1, plot2, nrow = 1)
+```
+
+Xiao Long Bao is the most beloved category among Taiwanese people, and one particular variety stands out as an all-time favorite: <b>Pork Xiao Long Bao</b>. Its irresistible juiciness and remarkable freshness make it a true delight.
+
+<b>Unveiling the Meaty Marvel:</b> Pork reigns supreme as the most popular choice among all meat items. Din Tai Fung delivers an abundance of delectable pork creations, catering to the prevailing preference for this mouthwatering option.   
+
+### The Busiest Day of the Week
+
+```{r busiest day, echo=FALSE, fig.height=4, fig.width=6}
+desired_order <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+
+order %>% 
+  mutate(weekday = ordered(weekdays(date), levels = desired_order)) %>%
+  ggplot() +
+  geom_bar(mapping = aes(y = weekday,
+                         fill = weekday)) +
+  theme_classic() + 
+  labs(title = "Most Busiest of the Week",
+       subtitle = "Source: Kaggle - Ding Tai Fung x Online Ordering Platform Orders",
+       caption = "This is not a real world data.",
+       x = "Weekday",
+       y = "No of Orders") + 
+  theme(plot.caption = element_text(hjust = 0,
+                                    vjust = 1),
+        plot.subtitle = element_text(size = 8),
+        axis.text.x = element_text(angle = 25,
+                                   hjust = 1),
+        legend.position = "none",
+        panel.background = element_rect(color = "black", linewidth = 0.8)) + 
+  scale_fill_manual(values = c("#ffffcc",
+                               "#c7e9b4",
+                               "#7fcdbb",
+                               "#41b6c4",
+                               "#1d91c0",
+                               "#225ea8",
+                               "#0c2c84"))
+```
+
+<b>Gentle Fridays:</b>  Embracing a relaxed rhythm, Fridays emerge as the least busy day of the week. Perhaps families opt for Cozy dine-ins, fostering precious moments together instead of placing online orders.
+
+More manpower resources could be arranged during Sunday, Monday and Tuesday.
+
+### Performance of Online Ordering Platform
+```{r Performance Online Platform, echo=FALSE, fig.height=4, fig.width=10}
+plot_revenue <- order %>% 
+  mutate(month = month(date)) %>% 
+  ggplot() + 
+  geom_col(mapping = aes(x = factor(month),
+                         y = total),
+           fill = "#cb547c") +
+  labs(title = "Performance of Online Platform (Revenue)",
+       subtitle = "Source: Kaggle - Ding Tai Fung x Online Ordering Platform Orders",
+       caption = "The data is up to 17 May 2023",
+       x = "Month", y = "Total Revenue (TWD)") +
+  theme_classic() +
+  theme(plot.caption = element_text(hjust = 0,
+                                    vjust = 1),
+        plot.subtitle = element_text(size = 8),
+        panel.background = element_rect(color = "black", linewidth = 0.8)) +
+  scale_x_discrete(
+    breaks = 1:12,
+    labels = c(
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  scale_y_continuous(labels = scales::number_format(big.mark = ","))
+
+plot_order <- order %>% 
+  mutate(month = month(date)) %>% 
+  ggplot() + 
+  geom_bar(mapping = aes(x = factor(month)),
+           fill = "#956cc6") +
+  labs(title = "Performance of Online Platform (Order)",
+       subtitle = "",
+       caption = "The data is up to 17 May 2023.",
+       x = "Month", y = "Total Order") +
+  theme_classic() +
+    theme(plot.caption = element_text(hjust = 0,
+                                      vjust = 1),
+          plot.subtitle = element_text(size = 8),
+          panel.background = element_rect(color = "black", linewidth = 0.8)) +
+  scale_x_discrete(
+    breaks = 1:12,
+    labels = c(
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    )
+  )
+  
+grid.arrange(plot_revenue, plot_order, nrow = 1)
+```
+
+<b>Embarking on a Digital Journey:</b> Following the launch of Din Tai Fung s Online Ordering Platform on April 1st, 2023, a remarkable surge in total orders and substantial revenue growth has transpired. Notably, despite January 2023 witnessing comparable order volumes to April, the revenue generated during that month paled in comparison to the flourishing success experienced in April.
+
+### Conclusion:
+<b>Navigating the COVID-19 Pandemic:</b> Embracing a strategic move, the launch of Din Tai Fung s Online Ordering Platform proved invaluable in Generating Revenue. As individuals sought comfort and security, opting for dining experiences that provided a sense of safety, the Online Platform offered a convenient solution, allowing customers to enjoy delightful meals from the comfort of their Homes.
