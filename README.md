@@ -19,6 +19,9 @@ You can click the Preview link to take a look at your changes.
    
 2. Covid-19 African Countries Data Visualization \
    Link: https://www.kaggle.com/code/oxiaofango/covid-19-african-countries-data-viz
+   
+3. Ding Tai Fung Online Platform Data Visualization\
+   Link: https://www.kaggle.com/oxiaofango/ding-tai-fung-data-viz
 
 ### Tableau:
 
