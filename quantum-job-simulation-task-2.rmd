@@ -1,0 +1,86 @@
+---
+title: "Quantium Job Simulation - Task 2"
+author: "Xiao Fang"
+date: "2023-10-18"
+output: 
+  html_document:
+    number_sections: false
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Quantium Virtual Internship - Retail Strategy and Analytics - Task 2
+
+<img src="https://img.freepik.com/premium-vector/logistics-transportation-aspects-snack-food-industry-truck-deliver-potato-chips-store-distribution_87771-26685.jpg?w=2000" width="70%" height="70%" align="center"/>
+
+## 1. Define the Problem / Objective:
+
+#### Objective:
+
+To evaluate the impact of the new trial layouts on the performance of selected trial stores compared to control stores. Provide data-driven recommendation to each location regarding whether the trial layout should be rolled out to all stores.
+
+#### Key Focus Areas:
+
+1.  Select control stores
+
+-   Explore data and define metrics for selecting control stores
+-   Consider factors that make a store suitable as control store
+-   Visualize these metrics to ensure their suitability
+
+2.  Assessment of the Trial:
+
+-   Evaluate each trial store individually in comparison with its respective control store
+-   Gain insights into the overall performance of each store
+
+3.  Collate Findings:
+
+-   Summarise the findings for each store, including key performance metrics and insights.
+-   Provide a clear recommendation for each location based on the impact on sales
+
+## 2. Data Collection
+
+The data is given in csv files.
+
+1.  QVI data - This dataset is the output of Task 1, consist of transactions from Jul 2018 to Jun 2019 and details about loyal customers.
+
+```{r - Loading required libraries, include=FALSE}
+library(tidyverse)
+library(readxl)
+library(ggplot2)
+library(dplyr)
+library(lubridate)
+library(stringr)
+library(writexl)
+```
+
+```{r - Loading excel file}
+QVI_data <- read_excel("/kaggle/input/quantum-job-simulation-dataset/QVI_data.xlsx", sheet = "Sheet1")
+```
+
+##### Data Observation - Customer Data
+
+1.  There are total 246,740 observations and 15 variables.
+2.  There is no NA data in the dataset.
+
+```{r - Data Observation - QVI Data, echo=FALSE}
+##### Data Observation - QVI Data
+head(QVI_data)
+any(is.na(QVI_data))
+```
+
+## 3. Data Cleaning
+
+There is no data cleaning is required as QVI_data is an output from Task 1.
+
+## 4. Exploratory Data Analysis:
+
+```{r - EDA - Setting up theme, include=FALSE}
+##### Set theme for plot
+theme_set(theme_classic())
+theme_update(plot.title = element_text(hjust = 0.5))
+
+```
+
